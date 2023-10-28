@@ -1,0 +1,73 @@
+version: '3'
+services:
+  nest-mongo-typeorm:
+    image: ${APP_NAME}
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - '${APP_INSIDE_PORT}:${APP_OUTSIDE_PORT}'
+    depends_on:
+      - mongodb
+      - redis
+      - elasticsearch
+    env_file: .env # Load environment variables from .env
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - '${MONGO_INSIDE_PORT}:${MONGO_OUTSIDE_PORT}'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+    volumes:
+      - mongodb-data:/data/db
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - '${REDIS_INSIDE_PORT}:${REDIS_OUTSIDE_PORT}'
+    # volumes:
+    #   - redis-data:/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.1
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=es-docker-cluster
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
+    ports:
+      - '${ELASTICSEARCH_INSIDE_PORT}:${ELASTICSEARCH_OUTSIDE_PORT}'
+      - '${ELASTICSEARCH_TRANSPORT_INSIDE_PORT}:${ELASTICSEARCH_TRANSPORT_OUTSIDE_PORT}'
+    networks:
+      - elastic
+
+  kib01:
+    image: docker.elastic.co/kibana/kibana:7.15.1
+    container_name: kib01
+    ports:
+      - 5602:5601
+    environment:
+      ELASTICSEARCH_URL: http://es01:9200
+      ELASTICSEARCH_HOSTS: '["http://es01:9200"]'
+    networks:
+      - elastic
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+volumes:
+  mongodb-data:
+    driver: local
+  redis-data:
+    driver: local
+  elasticsearch-data:
+    driver: local
+
+networks:
+  elastic:
+    driver: bridge

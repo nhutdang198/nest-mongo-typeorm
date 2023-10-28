@@ -1,0 +1,13 @@
+{
+  query: {
+    bool: {
+      should: [],
+      must: [],
+      filter: []
+    },
+  },
+  from: (page - 1) * size,
+  size: size,
+  sort: [],
+  track_total_hits: true,
+}
